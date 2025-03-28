@@ -13,11 +13,13 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import Dataset
 from colorstreak import log
+from tqdm import tqdm
+
 
 #os.system('clear')
 
 # --- Rutas ---
-main_rute = "/Users/ferleon/Documents/GitHub/astra/"
+main_rute = "/home/fernandoia/Descargas/astraseneka-main/"
 # --- Imgs rute ---
 img_train_dataset = main_rute + 'boneage-training-dataset/'
 img_test_dataset = main_rute + 'boneage-test-dataset/'
@@ -137,7 +139,7 @@ class BoneAgeImageDataset(Dataset):
         return image, boneage
 
 # --- Función para entrenar (fine-tuning) el modelo ---
-def fine_tuning_model(df, images_folder, num_epochs=4, batch_size=16, lr=1e-4):
+def fine_tuning_model(df, images_folder, num_epochs=20, batch_size=16, lr=1e-4):
     """
     Realiza el fine-tuning del modelo ViT_B_16 para predecir la edad ósea (boneage)
     usando el DataFrame 'df' (que proviene de csv_train) y las imágenes locales en 'images_folder'.
@@ -146,9 +148,9 @@ def fine_tuning_model(df, images_folder, num_epochs=4, batch_size=16, lr=1e-4):
     weights = torchvision.models.ViT_B_16_Weights.IMAGENET1K_V1
     transform = weights.transforms()
     
+    log.info("Iniciando separación de datos")
     # Dividir el dataframe en entrenamiento y validación (80-20)
-    #df_train_split, df_val_split = train_test_split(df, test_size=0.2, random_state=42)
-    df_train_split, df_val_split = df_train, df_test
+    df_train_split, df_val_split = train_test_split(df, test_size=0.2, random_state=42)
     log.info(f"Train split: {df_train_split.shape}, Val split: {df_val_split.shape}")
     
     # Crear datasets y DataLoaders
@@ -165,11 +167,15 @@ def fine_tuning_model(df, images_folder, num_epochs=4, batch_size=16, lr=1e-4):
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     
+    log.info("Ciclo de entrenamiento")
     # Ciclo de entrenamiento
     for epoch in range(num_epochs):
         model.train()
         running_loss = 0.0
-        for images, boneages in train_loader:
+        # Crear la barra de progreso dentro del ciclo de épocas
+        progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}", unit="batch", leave=False)
+        
+        for i, (images, boneages) in enumerate(progress_bar):
             images = images.to(device)
             # Ajustamos boneages a forma (batch, 1)
             boneages = boneages.to(device).unsqueeze(1)
@@ -181,8 +187,16 @@ def fine_tuning_model(df, images_folder, num_epochs=4, batch_size=16, lr=1e-4):
             optimizer.step()
             
             running_loss += loss.item() * images.size(0)
+            
+            # Actualizamos la barra de progreso con el porcentaje y la pérdida
+            progress_bar.set_postfix({
+                "Loss": f"{loss.item():.2f}",
+                "Progress": f"{(i+1)*100/len(train_loader):.2f}%"
+            })
         
         epoch_loss = running_loss / len(train_dataset)
+        log.info(f"Epoch [{epoch+1}/{num_epochs}] - Train Loss: {epoch_loss:.4f}")
+
         
         # Evaluación en el conjunto de validación
         model.eval()
@@ -198,7 +212,6 @@ def fine_tuning_model(df, images_folder, num_epochs=4, batch_size=16, lr=1e-4):
         
         log.info(f"Epoch [{epoch+1}/{num_epochs}] - Train Loss: {epoch_loss:.4f} | Val Loss: {val_loss:.4f}")
     
-    return model
     return model
 
 def crear_modelo_vit_regresion():
@@ -254,7 +267,7 @@ def main():
         modelo_entrenado.load_state_dict(torch.load(model_weights_path, map_location=device))
     else:
         log.info("Iniciando fine-tuning del modelo ViT_B_16 para predecir boneage...")
-        modelo_entrenado = fine_tuning_model(df_train, img_train_dataset, num_epochs=3, batch_size=16, lr=1e-4)
+        modelo_entrenado = fine_tuning_model(df_train, img_train_dataset, num_epochs=10, batch_size=16, lr=1e-4)
         torch.save(modelo_entrenado.state_dict(), model_weights_path)
         
         
