@@ -19,7 +19,7 @@ from tqdm import tqdm
 #os.system('clear')
 
 # --- Rutas ---
-main_rute = "/home/fernandoia/Descargas/astraseneka-main/"
+main_rute = os.get() + "/"
 # --- Imgs rute ---
 img_train_dataset = main_rute + 'boneage-training-dataset/'
 img_test_dataset = main_rute + 'boneage-test-dataset/'
