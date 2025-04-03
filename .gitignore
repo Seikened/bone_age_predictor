@@ -1,3 +1,4 @@
 boneage-training-dataset/
 boneage-test-dataset/
 .DS_Store
+*.pth
