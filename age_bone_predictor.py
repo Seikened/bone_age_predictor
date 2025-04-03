@@ -233,7 +233,7 @@ def crear_modelo_vit_regresion():
     y reemplaza la capa final para regresión (salida 1).
     """
     # Usamos la versión estable IMAGENET1K_V1 (baseline robusto)
-    weights = torchvision.models.ViT_B_16_Weights.IMAGENET1K_V1
+    weights = torchvision.models.ViT_B_16_Weights.IMAGENET1K_SWAG_LINEAR_V1
     model = torchvision.models.vit_b_16(weights=weights)
     # Obtenemos el número de características de entrada de la cabeza original
     num_features = model.heads.head.in_features
@@ -251,7 +251,7 @@ def predecir_boneage(model, image_path):
     image = Image.open(image_path).convert("RGB")
 
     # Obtener los transforms asociados a los pesos (mantiene la consistencia)
-    weights = torchvision.models.ViT_B_16_Weights.IMAGENET1K_V1
+    weights = torchvision.models.ViT_B_16_Weights.IMAGENET1K_SWAG_LINEAR_V1
     preprocess = weights.transforms()
 
     # Preprocesar la imagen: resize, central crop, normalización, etc.
@@ -279,7 +279,7 @@ def main():
     ]
     for modelo_version in modelo_version_list:
         log.debug(f"Versión del modelo: {modelo_version}")
-        model_weights_path = main_rute + f"vit_b16_finetuned_{modelo_version}.pth"
+        model_weights_path = main_rute + f"vit_b16_SWAG_E2E_{modelo_version}.pth"
 
         if os.path.exists(model_weights_path):
             log.info("Cargando pesos guardados...")
