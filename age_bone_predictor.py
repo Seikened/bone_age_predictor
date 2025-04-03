@@ -195,7 +195,7 @@ def fine_tuning_model(df, images_folder, num_epochs=20, batch_size=16, lr=1e-4):
             })
         
         epoch_loss = running_loss / len(train_dataset)
-        log.info(f"Epoch [{epoch+1}/{num_epochs}] - Train Loss: {epoch_loss:.4f}")
+      
 
         
         # Evaluación en el conjunto de validación
@@ -259,27 +259,54 @@ def main():
     #global_info()  # Para EDA y visualización
     
     # Definir ruta donde se guardarán los pesos del modelo
-    model_weights_path = main_rute + 'vit_b16_finetuned.pth'
-    
-    if os.path.exists(model_weights_path):
-        log.info("Cargando pesos guardados...")
-        modelo_entrenado = crear_modelo_vit_regresion()
-        modelo_entrenado.load_state_dict(torch.load(model_weights_path, map_location=device))
-    else:
-        log.info("Iniciando fine-tuning del modelo ViT_B_16 para predecir boneage...")
-        modelo_entrenado = fine_tuning_model(df_train, img_train_dataset, num_epochs=10, batch_size=16, lr=1e-4)
-        torch.save(modelo_entrenado.state_dict(), model_weights_path)
+    #modelo_version_list = ['V1','V2','V3']
+    modelo_version_list = ['0.003','0.004',]
+    for modelo_version in modelo_version_list:
+        log.debug(f"Versión del modelo: {modelo_version}")
+        model_weights_path = main_rute + f'vit_b16_finetuned_{modelo_version}.pth'
         
+        if  os.path.exists(model_weights_path):
+            log.info("Cargando pesos guardados...")
+            modelo_entrenado = crear_modelo_vit_regresion()
+            try:
+                modelo_entrenado.load_state_dict(torch.load(model_weights_path, map_location=device))
+            except:
+                log.error("Error al cargar")
+            
+            
+            print(f"Valores del entrenamiento del rendimiento del modelo: {model_weights_path}")
+            # Prueba rápida: predecir en una imagen de ejemploR
+            
+            #ids_imgs = df_train['id'].values
+            #ids_imgs = ids_imgs[:100]
+            
+            ids_imgs = [2140,2100,2000,2300]
+            suma = 0
+            ejemplo_img_path = get_img_from_path(img_train_dataset, df_train[df_train['id'] == id_mg]['id'].iloc[0])
+            for id_mg in ids_imgs:
+                ejemplo_img_path = get_img_from_path(img_train_dataset, df_train['id'])
+                prediccion = predecir_boneage(modelo_entrenado, ejemplo_img_path)
+                error = abs(df_train['boneage'].iloc[id_mg] - prediccion)
+                suma += error
+                log.info(f"Predicción de edad ósea para la imagen {df_train['id'].iloc[id_mg]}: {prediccion:.2f}")
+                log.info(f"Valor real: {df_train['boneage'].iloc[id_mg]} | Predicción: {prediccion:.2f} | Error: {error} ")
+            promedio = suma/len(ids_imgs)
+            log.info(f"Promedio de error: {promedio}")
+            
+            
+            
+        else:
+            
+            log.info("Iniciando fine-tuning del modelo ViT_B_16 para predecir boneage...")
+            #alphas = [5e-3,6e-3,7e-3,8e-3,9e-3,1e-2]
+            alphas = [0.003,0.004]
+            for alpha in alphas:
+                model_weights_path = main_rute + f'vit_b16_finetuned_{str(alpha)}.pth'
+                log.info(f"Entrenando con learning rate: {alpha}")
+                modelo_entrenado = fine_tuning_model(df_train, img_train_dataset, num_epochs=10, batch_size=16, lr=alpha)
+                torch.save(modelo_entrenado.state_dict(), model_weights_path)
+            
         
-    print(f"Valores del entrenamiento del rendimiento del modelo: {model_weights_path}")
-    # Prueba rápida: predecir en una imagen de ejemplo
-    id_mg =  1391
-    ejemplo_img_path = get_img_from_path(img_train_dataset, df_train['id'].iloc[id_mg])
-    prediccion = predecir_boneage(modelo_entrenado, ejemplo_img_path)
-    print(f"Predicción de edad ósea para la imagen {df_train['id'].iloc[id_mg]}: {prediccion:.2f}")
-    
-    print(f"Valor real: {df_train['boneage'].iloc[id_mg]} | Predicción: {prediccion:.2f} | Error: {abs(df_train['boneage'].iloc[id_mg] - prediccion):.2f} ")
-    
     
     
 
