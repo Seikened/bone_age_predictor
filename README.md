@@ -31,6 +31,7 @@ Puedes ejecutar el script principal o analizar el notebook para reproducir los r
 
 **Autors:** 
 - Noé Guadalupe Aldana Murillo (Doctor | Researcher)
+- Mariano José Juan Rivera Meraz (Doctor | Researcher | SNII 3) 
 - Fernando Leon Franco (IA Engineer)
 - Rodrigo Mendoza Rodríguez (IA Engineer)
 - Emilio Frausto Ortiz (IA Engineer)
